@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lung Capacity Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(120deg, #1a1a2e, #16213e);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            background: #ff4b5c;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .hidden { display: none; }
+        #circle {
+            width: 150px;
+            height: 150px;
+            background: #ff4b5c;
+            border-radius: 50%;
+            margin: 40px auto;
+            animation: breathe 3s infinite alternate ease-in-out;
+        }
+        @keyframes breathe {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.5); }
+        }
+        #timer {
+            font-size: 80px;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        #message {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js").catch(console.error);
+        }
+    </script>
+</head>
+<body>
+
+<!-- Page 1: Start Screen -->
+<div class="container" id="startScreen">
+    <h1>Test Your Lung Capacity</h1>
+    <p>Click the button below to begin.</p>
+    <button id="startBtn">Start Test</button>
+</div>
+
+<!-- Page 2: Breathing Preparation -->
+<div class="container hidden" id="prepScreen">
+    <h1>Take Some Deep Breaths</h1>
+    <div id="circle"></div>
+    <p>When you're ready, click the button below to start holding your breath.</p>
+    <button id="holdBreathBtn">Ready? Hold Breath</button>
+</div>
+
+<!-- Page 3: Timer Screen -->
+<div class="container hidden" id="testScreen">
+    <h1>Hold Your Breath!</h1>
+    <div id="circle"></div>
+    <div id="timer">00:00</div>
+    <div id="message">Triple tap anywhere to stop.</div>
+</div>
+
+<script>
+    let startTime, timerInterval;
+    let tapCount = 0;
+    let tapTimeout;
+    let wakeLock = null;
+
+    async function enableFullscreen() {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        }
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) {
+                console.error("Wake Lock failed:", err);
+            }
+        }
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async function() {
+        await enableFullscreen();
+        document.getElementById("startScreen").classList.add("hidden");
+        document.getElementById("prepScreen").classList.remove("hidden");
+    });
+
+    document.getElementById("holdBreathBtn").addEventListener("click", function() {
+        document.getElementById("prepScreen").classList.add("hidden");
+        document.getElementById("testScreen").classList.remove("hidden");
+        startTest();
+    });
+
+    function startTest() {
+        startTime = new Date().getTime();
+        document.getElementById("timer").innerText = "00:00";
+        document.getElementById("message").innerText = "Triple tap anywhere to stop.";
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+        let elapsedTime = Math.floor((new Date().getTime() - startTime) / 1000);
+        let minutes = String(Math.floor(elapsedTime / 60)).padStart(2, '0');
+        let seconds = String(elapsedTime % 60).padStart(2, '0');
+        document.getElementById("timer").innerText = `${minutes}:${seconds}`;
+        
+        // Motivational Messages at Different Times
+        if (elapsedTime === 10) document.getElementById("message").innerText = "Good start! Keep going.";
+        if (elapsedTime === 20) document.getElementById("message").innerText = "You're stronger than you think!";
+        if (elapsedTime === 30) document.getElementById("message").innerText = "Your lungs are getting stronger!";
+        if (elapsedTime === 45) document.getElementById("message").innerText = "Halfway to a minute. Push through!";
+        if (elapsedTime === 60) document.getElementById("message").innerText = "1 minute! This is great!";
+        if (elapsedTime === 90) document.getElementById("message").innerText = "90 seconds! You're doing amazing!";
+        if (elapsedTime === 120) document.getElementById("message").innerText = "2 minutes! You're a warrior!";
+        if (elapsedTime === 150) document.getElementById("message").innerText = "Push through the discomfort!";
+        if (elapsedTime === 180) document.getElementById("message").innerText = "3 minutes! This is elite level!";
+        if (elapsedTime === 210) document.getElementById("message").innerText = "Stay calm, control your breath.";
+        if (elapsedTime === 240) document.getElementById("message").innerText = "4 minutes! You’re unstoppable!";
+        if (elapsedTime === 270) document.getElementById("message").innerText = "Almost there! Stay strong!";
+        if (elapsedTime === 300) document.getElementById("message").innerText = "5 minutes! You are a legend!";
+
+        if (elapsedTime >= 300) stopTest();
+    }
+
+    document.body.addEventListener("touchstart", function() {
+        tapCount++;
+        clearTimeout(tapTimeout);
+        tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
+
+        if (tapCount === 3) stopTest();
+    });
+
+    function stopTest() {
+        clearInterval(timerInterval);
+        let elapsedTime = Math.floor((new Date().getTime() - startTime) / 1000);
+
+        let message = "Not bad! Keep practicing!";
+        if (elapsedTime > 30) message = "Great job!";
+        if (elapsedTime > 60) message = "Amazing lung capacity!";
+        if (elapsedTime > 90) message = "You're a breath-holding master!";
+        if (elapsedTime > 180) message = "You're an elite-level breath holder!";
+        if (elapsedTime > 240) message = "Incredible! Few people can do this!";
+        if (elapsedTime >= 300) message = "5 minutes! You are a legend!";
+
+        document.getElementById("message").innerText = `You lasted ${elapsedTime} seconds! ${message}`;
+
+        if (wakeLock !== null) {
+            wakeLock.release().then(() => { wakeLock = null; });
+        }
+    }
+
+    document.addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "visible" && wakeLock === null && 'wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) {
+                console.error("Wake Lock failed:", err);
+            }
+        }
+    });
+</script>
+
+    <button id="installBtn" style="display:none; position:fixed; bottom:20px; right:20px; padding:10px; background:#ff4b5c; color:white; border:none; border-radius:5px; cursor:pointer;">Install</button>
+    <script>
+        let deferredPrompt;
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById("installBtn").style.display = "block";
+        });
+        document.getElementById("installBtn").addEventListener("click", () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choice) => {
+                    if (choice.outcome === "accepted") {
+                        console.log("PWA Installed");
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
